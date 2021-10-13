@@ -1,5 +1,5 @@
 # Snowflake Stage Exporter
-Snowflake database loading utility with **Scrapy** integration.  
+Snowflake database loading utility with [**Scrapy**](https://scrapy.org/) integration.  
 Meant for streaming ingestion of JSON serializable objects into Snowflake stages and tables.  
 
 ## Installation
@@ -24,7 +24,7 @@ with SnowflakeStageExporter(
     exporter.finish_export()  # flushes all stage buffers, creates tables and populates them with data inside stages
 ```
 
-After you call `finish()` 2 tables will be created: `EMPLOYEE` (2 rows, 3 columns) and `PRODUCT` (1 row, 2 columns) located inside database `MY_DATABASE` and database schema `PUBLIC` (Snowflake [default database schema](https://docs.snowflake.com/en/sql-reference/sql/create-database.html#general-usage-notes)).
+After you call `finish_export()` 2 tables will be created: `EMPLOYEE` (2 rows, 3 columns) and `PRODUCT` (1 row, 2 columns) located inside database `MY_DATABASE` and database schema `PUBLIC` (Snowflake [default database schema](https://docs.snowflake.com/en/sql-reference/sql/create-database.html#general-usage-notes)).
 
 [Same thing achieved via Scrapy integration](./docs/scrapy_basic_example.md).
 
@@ -45,7 +45,7 @@ An illustrative example can be a long running Scrapy / ScrapyCloud job that cons
 
 Secondary consideration was for allowing the user to be able to work with purely just the stages like one would work with S3 or similar blob file storage. This covers cases when user would needs their own sophisticated table management approach and simply wants a convenient place to store raw data.
 
-**IMPORTANT NOTE: it won't make much sense to use this library** if you're already working with S3 or similar storages (including just local machine) where your data is one of the [Snowflake supported file formats](https://docs.snowflake.com/en/user-guide/data-load-prepare.html#supported-file-formats). Snowflake [has built-in support of ingesting several 3rd party blob storages](https://docs.snowflake.com/en/user-guide/data-load-bulk.html) and for local files you can upload them via `PUT` statements.
+**IMPORTANT NOTE**: it won't make much sense to use this library if you're already working with S3 or similar storages (including just local machine) where your data is one of the [Snowflake supported file formats](https://docs.snowflake.com/en/user-guide/data-load-prepare.html#supported-file-formats). Snowflake [has built-in support of ingesting several 3rd party blob storages](https://docs.snowflake.com/en/user-guide/data-load-bulk.html) and for local files you can upload them via `PUT` statements.
 
 ## Configuration
 
@@ -76,7 +76,7 @@ All of the configurations are done via arguments to main exporter class `Snowfla
     - Takes effect only when there is a need for exporter to figure out the column type.
     - The data is still exported in full to the staged files.
 - `create_tables_on` - one of "finish/flush/never". "finish" by default. "flush" is for each time a file is staged.
-- `populate_tables_on` - ditto.
+- `populate_tables_on` - same as above.
 - `clear_stage_on` - same as above but "never" is default. Each file is removed from stage individually when enabled.
 
 ## Configuration (Scrapy)
