@@ -5,10 +5,10 @@ import time
 import typing
 from contextlib import AbstractContextManager
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Any, Dict, Iterable, Literal
+from typing import Any, Collection, Dict, Iterable, Literal
 
-import snowflake.connector
-from itemadapter import ItemAdapter
+import snowflake.connector  # type: ignore
+from itemadapter import ItemAdapter  # type: ignore
 
 from .utils import chunk
 
@@ -20,7 +20,7 @@ ExporterEvent = Literal["finish", "flush", "never"]
 
 class SnowflakeStageExporter(AbstractContextManager):
 
-    default_typemap = {
+    typemap = {
         dict: "OBJECT",
         list: "ARRAY",
         int: "NUMBER",
@@ -46,21 +46,21 @@ class SnowflakeStageExporter(AbstractContextManager):
         populate_tables_on: ExporterEvent = "finish",
         clear_stage_on: ExporterEvent = "never",
     ):
-        self.max_file_size = max_file_size
-        self.table_path = table_path
-        self.stage = stage
-        self.stage_path = stage_path
-        self.create_tables_on = create_tables_on
-        self.populate_tables_on = populate_tables_on
-        self.clear_stage_on = clear_stage_on
-        self.allow_varying_value_types = allow_varying_value_types
-        self.predefined_column_types = predefined_column_types or {}
-        self.ignore_unexpected_fields = ignore_unexpected_fields
-        self.instance_ms = int(time.time() * 1000)
+        self._max_file_size = max_file_size
+        self._table_path = table_path
+        self._stage = stage
+        self._stage_path = stage_path
+        self._create_tables_on = create_tables_on
+        self._populate_tables_on = populate_tables_on
+        self._clear_stage_on = clear_stage_on
+        self._allow_varying_value_types = allow_varying_value_types
+        self._predefined_column_types = predefined_column_types or {}
+        self._ignore_unexpected_fields = ignore_unexpected_fields
+        self._instance_ms = int(time.time() * 1000)
 
         exporter_events = typing.get_args(ExporterEvent)
         for attr in ("create_tables_on", "populate_tables_on", "clear_stage_on"):
-            val = getattr(self, attr)
+            val = getattr(self, "_" + attr)
             if val not in exporter_events:
                 raise ValueError(
                     f"unexpected value ({val!r}) for {attr!r}, expected one of {exporter_events!r}"
@@ -72,9 +72,9 @@ class SnowflakeStageExporter(AbstractContextManager):
             account=account,
             **(connection_kwargs or {}),
         )
-        self.table_buffers: Dict = {}  # {table_path: tmp_buffer_file}
-        self.exported_fpaths: Dict = {}  # {table_path: [exported_fpath_in_stage, ...]}
-        self.recorded_field_types: Dict = {}  # {table_path: {field: set({cls, ...})}}
+        self._table_buffers: Dict = {}  # {table_path: tmp_buffer_file}
+        self._exported_fpaths: Dict = {}  # {table_path: [exported_fpath_in_stage, ...]}
+        self._recorded_field_types: Dict = {}  # {table_path: {field: set({cls, ...})}}
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
@@ -82,47 +82,52 @@ class SnowflakeStageExporter(AbstractContextManager):
     def create_connection(self, **connection_kwargs):
         return snowflake.connector.connect(**connection_kwargs)
 
-    def close(self):
+    def close(self) -> None:
         self.conn.close()
 
-    def export_item(self, item: Any, **extra_params) -> None:
+    def export_item(self, item: Any, **extra_params) -> str:
         item_dict = ItemAdapter(item).asdict()
 
         table_path = self.table_for_item(item_dict, **extra_params)
-        if table_path not in self.table_buffers:
+        if table_path not in self._table_buffers:
             logger.info("Creating buffer for %r", table_path)
-            self.table_buffers[table_path] = NamedTemporaryFile("wb")
+            self._table_buffers[table_path] = NamedTemporaryFile("wb")
 
         self.record_field_types(table_path, item_dict)
 
         line = json.dumps(item_dict) + "\n"
-        self.table_buffers[table_path].write(line.encode("utf8"))
-        if self.table_buffers[table_path].tell() >= self.max_file_size:
+        self._table_buffers[table_path].write(line.encode("utf8"))
+        if self._should_flush_buffer_for(table_path):
             self.flush_table_buffer(table_path)
 
-    def record_field_types(self, table_path: str, item_dict):
-        recorded = self.recorded_field_types.setdefault(table_path, {})
+        return table_path
+
+    def _should_flush_buffer_for(self, table_path: str) -> bool:
+        return self._table_buffers[table_path].tell() >= self._max_file_size
+
+    def record_field_types(self, table_path: str, item_dict) -> None:
+        recorded = self._recorded_field_types.setdefault(table_path, {})
         for k, v in item_dict.items():
             if v is not None:
                 recorded.setdefault(k, set()).add(type(v))
 
     def table_for_item(self, item_dict: str, **extra_params) -> str:
-        return self.table_path.format(**extra_params, item=item_dict)
+        return self._table_path.format(**extra_params, item=item_dict)
 
     def fpath_for_table(self, table_path: str, batch_n: int) -> str:
-        return self.stage_path.format(
+        return self._stage_path.format(
             table_path=table_path,
-            instance_ms=self.instance_ms,
+            instance_ms=self._instance_ms,
             batch_n=batch_n,
         )
 
     def flush_table_buffer(self, table_path: str) -> None:
-        # XXX: there is no straightforward way to provide a filename via PUT
+        # HACK: there is no straightforward way to provide a filename via PUT
         # statement, so as a workaround we symlink our file into a temporary
-        # directory with a desired filename.
-        tmp_file = self.table_buffers[table_path]
+        # directory with the desired filename.
+        tmp_file = self._table_buffers[table_path]
         tmp_file.flush()
-        batch_n = len(self.exported_fpaths.setdefault(table_path, [])) + 1
+        batch_n = len(self._exported_fpaths.setdefault(table_path, [])) + 1
         with TemporaryDirectory() as tempdir:
             fpath = self.fpath_for_table(table_path, batch_n)
             logger.info(
@@ -132,50 +137,51 @@ class SnowflakeStageExporter(AbstractContextManager):
             symlink_path = os.path.join(tempdir, fname)
             os.symlink(tmp_file.name, symlink_path)
             cursor = self.conn.cursor().execute(
-                f"PUT 'file://{symlink_path}' '{self.stage}/{prefix}'"
+                f"PUT 'file://{symlink_path}' '{self._stage}/{prefix}'"
             )
             fpath = prefix + "/" + cursor.fetchone()[1]
         tmp_file.close()
-        self.table_buffers.pop(table_path)
-        self.exported_fpaths[table_path].append(fpath)
+        self._table_buffers.pop(table_path)
+        self._exported_fpaths[table_path].append(fpath)
 
-        if self.create_tables_on == "flush":
+        if self._create_tables_on == "flush":
             self.create_table(table_path)
-        if self.populate_tables_on == "flush":
+        if self._populate_tables_on == "flush":
             self.populate_table(table_path)
-        if self.clear_stage_on == "flush":
+        if self._clear_stage_on == "flush":
             self.clear_stage([fpath])
 
     def flush_all_table_buffers(self) -> None:
-        for table_path in list(self.table_buffers):
+        for table_path in list(self._table_buffers):
             self.flush_table_buffer(table_path)
 
     def get_column_types(self, table_path: str) -> Dict[str, str]:
-        columns = self.predefined_column_types.get(table_path, {})
-        if columns and self.ignore_unexpected_fields:
+        columns = self._predefined_column_types.get(table_path, {})
+        if columns and self._ignore_unexpected_fields:
             return columns
 
-        for colname, types in self.recorded_field_types.get(table_path, {}).items():
+        for colname, types in self._recorded_field_types.get(table_path, {}).items():
             if colname in columns:
                 continue
             if len(types) == 1:
                 type_ = next(iter(types))
-                coltype = self.default_typemap.get(type_)
+                coltype = self.typemap.get(type_)
                 if not coltype:
                     logger.error(
-                        "Did not find an appropriate mapping from python type (%r)"
-                        " to snowflake column type. Only basic JSON serializable types are supported."
-                        "Field %r, skipping.",
-                        type_,
+                        "Table %r, field %r: skipping. Did not find an appropriate mapping from python type (%r)"
+                        " to snowflake column type. Only basic JSON serializable types are supported.",
+                        table_path,
                         colname,
+                        type_,
                     )
                     continue
             else:
-                if self.allow_varying_value_types:
+                if self._allow_varying_value_types:
                     coltype = "VARIANT"
                 else:
                     logger.error(
-                        "Multiple types encountered on values of the field %r: %r. Skipping.",
+                        "Table %r, field %r, skipping. Multiple types encountered on values: %r.",
+                        table_path,
                         colname,
                         types,
                     )
@@ -194,46 +200,48 @@ class SnowflakeStageExporter(AbstractContextManager):
         self.conn.cursor().execute(f"CREATE TABLE IF NOT EXISTS {table_path} ({cols})")
 
     def populate_table(self, table_path: str) -> None:
-        all_fpaths = self.exported_fpaths[table_path]
         logger.info("Populating table %r", table_path)
+        all_fpaths = self._exported_fpaths[table_path]
+        coltypes = self.get_column_types(table_path)
+        cols = ", ".join(coltypes)
+        json_select = ", ".join(f"$1:{field}" for field in coltypes)
         for fpaths in chunk(all_fpaths, 1000):
-            coltypes = self.get_column_types(table_path)
-            cols = ", ".join(coltypes)
-            json_select = ", ".join(f"$1:{field}" for field in coltypes)
             fpaths = ", ".join(f"'{fpath}'" for fpath in fpaths)
             self.conn.cursor().execute(
                 f"""
                 COPY INTO {table_path} ({cols})
-                    FROM (SELECT {json_select} FROM {self.stage})
+                    FROM (SELECT {json_select} FROM {self._stage})
                     FILE_FORMAT = (TYPE = JSON)
                     FILES = ({fpaths})
                 """
             )
 
     def create_all_tables(self) -> None:
-        for table_path in self.exported_fpaths:
+        for table_path in self._exported_fpaths:
             self.create_table(table_path)
 
     def populate_all_tables(self) -> None:
-        for table_path in self.exported_fpaths:
+        for table_path in self._exported_fpaths:
             self.populate_table(table_path)
 
     def clear_stage(self, fpaths: Iterable[str] = None):
         if fpaths is None:
-            logger.info("Removing all staged files")
-            fpaths = [fpath for fpaths in self.exported_fpaths for fpath in fpaths]
-        elif fpaths:
-            logger.info("Removing staged files: %r", fpaths)
+            fpaths = [fpath for fpaths in self._exported_fpaths for fpath in fpaths]
+            count_msg = f"{len(fpaths)} (all)"
+        else:
+            fpaths = list(fpaths or [])
+            count_msg = str(len(fpaths))
+        logger.info("Removing %s staged files", count_msg)
         if fpaths:
             self.conn.cursor().executemany(
-                "REMOVE %s", [(f"{self.stage}/{fpath}",) for fpath in fpaths]
+                "REMOVE %s", [(f"{self._stage}/{fpath}",) for fpath in fpaths]
             )
 
     def finish_export(self) -> None:
         self.flush_all_table_buffers()
-        if self.create_tables_on == "finish":
+        if self._create_tables_on == "finish":
             self.create_all_tables()
-        if self.populate_tables_on == "finish":
+        if self._populate_tables_on == "finish":
             self.populate_all_tables()
-        if self.clear_stage_on == "finish":
+        if self._clear_stage_on == "finish":
             self.clear_stage()
