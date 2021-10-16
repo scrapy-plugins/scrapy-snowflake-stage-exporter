@@ -13,14 +13,14 @@ Meant for streaming ingestion of JSON serializable objects into Snowflake stages
 from snowflake_stage_exporter import SnowflakeStageExporter
 
 with SnowflakeStageExporter(
-    user='...',
-    password='...',
-    account='...',
-    table_path='MY_DATABASE.PUBLIC.{item_type_name}',
+    user="...",
+    password="...",
+    account="...",
+    table_path="MY_DATABASE.PUBLIC.{item_type_name}",
 ) as exporter:
-    exporter.export_item({'name': 'Jack', 'salary': 100}, item_type_name='employee')
-    exporter.export_item({'name': 'Sal', 'salary': 90, 'extra_info': {'age': 20}}, item_type_name='employee')
-    exporter.export_item({'title': 'Steel Grill', 'price': 5.5}, item_type_name='product')
+    exporter.export_item({"name": "Jack", "salary": 100}, item_type_name="employee")
+    exporter.export_item({"name": "Sal", "salary": 90, "extra_info": {"age": 20}}, item_type_name="employee")
+    exporter.export_item({"title": "Steel Grill", "price": 5.5}, item_type_name="product")
     exporter.finish_export()  # flushes all stage buffers, creates tables and populates them with data inside stages
 ```
 
@@ -39,7 +39,7 @@ For each object that you feed into the exporter it will write it into a local bu
 
 ## Why "Stages"?
 
-The use of local buffers and stages opposed to typical SQL `INSERT` statements is motivated largely by Snowflake performance implications and their billing model (see https://community.snowflake.com/s/question/0D50Z00008JpBymSAF/implications-of-multiple-insert-statements-vs-copy-into).
+The use of local buffers and stages opposed to typical SQL `INSERT` statements is motivated largely by Snowflake performance implications and their billing model (see see [this topic](https://community.snowflake.com/s/question/0D50Z00008JpBymSAF/implications-of-multiple-insert-statements-vs-copy-into) on Snowflake official community forum).
 
 An illustrative example can be a long running Scrapy / ScrapyCloud job that constantly outputs data. If the job was to keep the connection constantly executing the INSERTs - Snowflake would also keep the warehouse running / consuming the credits for the entire duration of the job.
 
@@ -55,7 +55,7 @@ All of the configurations are done via arguments to main exporter class `Snowfla
 - `connection_kwargs` - any additional parameters to `snowflake.connector.connect`.
 - `table_path` - table path to use.
     - If you specify database / database schema in `connection_kwargs` you won't need to specify them in the table path.
-    - The path can include template variables which are expanded when you feed an item to exporter. By default only `item` variable is passed (e.g. `'MY_DB.PUBLIC.TABLE_{item[entity_type]}'` here it's assumed all of your items have "entity_type" field).
+    - The path can include template variables which are expanded when you feed an item to exporter. By default only `item` variable is passed (e.g. `"MY_DB.PUBLIC.TABLE_{item[entity_type]}"` here it's assumed all of your items have "entity_type" field).
     - Any additional variables you can pass yourself as keyword arguments when calling `exporter.export_item()`.
     - Additionally in Scrapy integration the following fields are passed:
         - `spider` - spider instance.
@@ -76,6 +76,7 @@ All of the configurations are done via arguments to main exporter class `Snowfla
     - Takes effect only when there is a need for exporter to figure out the column type.
     - The data is still exported in full to the staged files.
 - `create_tables_on` - one of "finish/flush/never". "finish" by default. "flush" is for each time a file is staged.
+    - If you are not providing `predefined_column_types`, note that using "flush" will constraint your tables to only be populated with columns encountered at the point when first "flush" happened.
 - `populate_tables_on` - same as above.
 - `clear_stage_on` - same as above but "never" is default. Each file is removed from stage individually when enabled.
 
@@ -84,6 +85,13 @@ All of the configurations are done via arguments to main exporter class `Snowfla
 All of the exporter instance parameters are exposed as Scrapy settings like `SNOWFLAKE_<UPPERCASE_PARAMETER_NAME>` (e.g. `SNOWFLAKE_MAX_FILE_SIZE`).
 
 Once a Scrapy job ends, all remaining buffers are flushed. If the job outcome is not "finished" (something went wrong) then no table creation / table population / stage clear takes place.
+
+## Development
+
+```bash
+> pip install black mypy pylint pytest # instal dev dependencies
+> python ./run_checks.py # run lints and tests
+```
 
 ## TODO
 

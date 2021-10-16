@@ -4,12 +4,12 @@
 # your Scrapy `settings.py` file
 ...
 ITEM_PIPELINES = {
-    'snowflake_stage_exporter.scrapy_pipeline.SnowflakePipeline': 100
+    "snowflake_stage_exporter.scrapy_pipeline.SnowflakePipeline": 100
 }
-SNOWFLAKE_USER = '...'
-SNOWFLAKE_PASSWORD = '...'
-SNOWFLAKE_ACCOUNT = '...'
-SNOWFLAKE_TABLE_PATH = 'DEMO_DB.PUBLIC.{item_type_name}'
+SNOWFLAKE_USER = "..."
+SNOWFLAKE_PASSWORD = "..."
+SNOWFLAKE_ACCOUNT = "..."
+SNOWFLAKE_TABLE_PATH = "DEMO_DB.PUBLIC.{item_type_name}"
 ...
 ```
 
@@ -33,11 +33,11 @@ class Product:
 
 
 class MySpider(scrapy.Spider):
-    name = 'test_spider'
-    start_urls = ['https://books.toscrape.com/']
+    name = "test_spider"
+    start_urls = ["https://books.toscrape.com/"]
 
     def parse(self, response, **kwargs):
-        yield Employee(name='Jack', salary=100)
-        yield Employee(name='Sal', salary=90, extra_info={'age': 20})
-        yield Product(name='Steel Grill', price=5.5)
+        yield Employee(name="Jack", salary=100)
+        yield Employee(name="Sal", salary=90, extra_info={"age": 20})
+        yield Product(name="Steel Grill", price=5.5)
 ```
