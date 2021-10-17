@@ -1,0 +1,5 @@
+[tool.pylint.'MESSAGES CONTROL']
+disable = "C, R"
+
+[tool.isort]
+profile = "black"

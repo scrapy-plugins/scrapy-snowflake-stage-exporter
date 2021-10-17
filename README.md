@@ -89,7 +89,7 @@ Once a Scrapy job ends, all remaining buffers are flushed. If the job outcome is
 ## Development
 
 ```bash
-> pip install black mypy pylint pytest # instal dev dependencies
+> pip install black mypy pylint isort pytest # instal dev dependencies
 > python ./run_checks.py # run lints and tests
 ```
 
