@@ -136,10 +136,7 @@ class SnowflakeStageExporter(AbstractContextManager):
             prefix, fname = fpath.rsplit("/", 1)
             symlink_path = os.path.join(tempdir, fname)
             os.symlink(tmp_file.name, symlink_path)
-            cursor = self.conn.cursor().execute(
-                f"PUT 'file://{symlink_path}' '{self._stage}/{prefix}'"
-            )
-            fpath = prefix + "/" + cursor.fetchone()[1]
+            fpath = self._put_file(symlink_path, self._stage, prefix)
         tmp_file.close()
         self._table_buffers.pop(table_path)
         self._exported_fpaths[table_path].append(fpath)
@@ -150,6 +147,13 @@ class SnowflakeStageExporter(AbstractContextManager):
             self.populate_table(table_path)
         if self._clear_stage_on == "flush":
             self.clear_stage([fpath])
+
+    def _put_file(self, fpath: str, stage: str, prefix: str) -> str:
+        """Uploads a file to stage and returns resulted fpath in stage.
+        Due to compression the resulting filename in stage can have an extra prefix (e.g. ".gz").
+        """
+        cursor = self.conn.cursor().execute(f"PUT 'file://{fpath}' '{stage}/{prefix}'")
+        return prefix + "/" + cursor.fetchone()[1]
 
     def flush_all_table_buffers(self) -> None:
         for table_path in list(self._table_buffers):
