@@ -1,0 +1,4 @@
+# [0.0.2]
+- Prefixed most `SnowflakeStageExporter` instance variables with underscore to indicate them being intended as "protected".
+- `SnowflakeStageExporter.default_typemap` -> `SnowflakeStageExporter.typemap`.
+- `SnowflakeStageExporter.export_item(...)` now returns expanded `table_path` used for passed item.
