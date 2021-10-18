@@ -28,7 +28,3 @@ def mock_calls_get_sql(calls):
     return [
         (re.sub(r"\n+\s+", " ", call.args[0]).strip(), *call.args[1:]) for call in calls
     ]
-
-
-def assert_sqls(calls, expected):
-    assert expected == mock_calls_get_sql(calls)

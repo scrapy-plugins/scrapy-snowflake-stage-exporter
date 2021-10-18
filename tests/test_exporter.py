@@ -1,5 +1,5 @@
 # pylint: disable=redefined-outer-name,protected-access,no-member,unspecified-encoding
-from tests import assert_sqls, make_test_exporter
+from tests import make_test_exporter, mock_calls_get_sql
 
 
 def test_exporter_basic():
@@ -23,19 +23,16 @@ def test_exporter_basic():
         exporter.finish_export()
         assert not exporter._table_buffers
 
-        assert_sqls(
-            exporter.conn.cursor().execute.mock_calls,
-            [
-                # NOTE: following expectations are generated via tests/record_sql.py
-                ("CREATE TABLE IF NOT EXISTS foo_1 (myfield NUMBER)",),
-                ("CREATE TABLE IF NOT EXISTS bar_2 (myfield NUMBER, x OBJECT)",),
-                (
-                    "COPY INTO foo_1 (myfield) FROM (SELECT $1:myfield FROM @~) FILE_FORMAT = "
-                    "(TYPE = JSON) FILES = ('foo_1/INSTANCE_MS_1.jl')",
-                ),
-                (
-                    "COPY INTO bar_2 (myfield, x) FROM (SELECT $1:myfield, $1:x FROM @~) "
-                    "FILE_FORMAT = (TYPE = JSON) FILES = ('bar_2/INSTANCE_MS_1.jl')",
-                ),
-            ],
-        )
+        assert mock_calls_get_sql(exporter.conn.cursor().execute.mock_calls) == [
+            # NOTE: following expectations are generated via tests/record_sql.py
+            ("CREATE TABLE IF NOT EXISTS foo_1 (myfield NUMBER)",),
+            ("CREATE TABLE IF NOT EXISTS bar_2 (myfield NUMBER, x OBJECT)",),
+            (
+                "COPY INTO foo_1 (myfield) FROM (SELECT $1:myfield FROM @~) FILE_FORMAT = "
+                "(TYPE = JSON) FILES = ('foo_1/INSTANCE_MS_1.jl')",
+            ),
+            (
+                "COPY INTO bar_2 (myfield, x) FROM (SELECT $1:myfield, $1:x FROM @~) "
+                "FILE_FORMAT = (TYPE = JSON) FILES = ('bar_2/INSTANCE_MS_1.jl')",
+            ),
+        ]
