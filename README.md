@@ -95,5 +95,5 @@ Once a Scrapy job ends, all remaining buffers are flushed. If the job outcome is
 
 ## TODO
 
-- Unit tests >_>.
-- Test on windows?
+- More unit tests.
+- Test on windows.
