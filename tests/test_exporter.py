@@ -149,13 +149,13 @@ def test_predefined_fields():
         exporter.finish_export()
         assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
             ("CREATE TABLE IF NOT EXISTS aa (a VARCHAR, b NUMBER, c VARIANT)",),
-            ("CREATE TABLE IF NOT EXISTS bb (a NUMBER, b NUMBER, d NUMBER, e OBJECT)",),
+            ("CREATE TABLE IF NOT EXISTS bb (b NUMBER, d NUMBER, e OBJECT)",),
             (
                 "COPY INTO aa (a, b, c) FROM (SELECT $1:a, $1:b, $1:c FROM @~) FILE_FORMAT = "
                 "(TYPE = JSON) FILES = ('aa/INSTANCE_MS_1.jl')",
             ),
             (
-                "COPY INTO bb (a, b, d, e) FROM (SELECT $1:a, $1:b, $1:d, $1:e FROM @~) FILE_FORMAT = "
+                "COPY INTO bb (b, d, e) FROM (SELECT $1:b, $1:d, $1:e FROM @~) FILE_FORMAT = "
                 "(TYPE = JSON) FILES = ('bb/INSTANCE_MS_1.jl')",
             ),
         ]
@@ -222,7 +222,7 @@ def test_dynamic_fields():
         exporter.finish_export()
     assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
         (
-            "CREATE TABLE IF NOT EXISTS table (a NUMBER, b NUMBER, c BOOLEAN, e VARCHAR, "
+            "CREATE TABLE IF NOT EXISTS table (a NUMBER, b FLOAT, c BOOLEAN, e VARCHAR, "
             "f ARRAY, g OBJECT, h VARIANT)",
         ),
         (
@@ -239,7 +239,7 @@ def test_dynamic_fields():
         (
             True,
             [
-                ("CREATE TABLE IF NOT EXISTS table (a NUMBER, b VARIANT, c ARRAY)",),
+                ("CREATE TABLE IF NOT EXISTS table (a VARIANT, b VARIANT, c ARRAY)",),
                 (
                     "COPY INTO table (a, b, c) FROM (SELECT $1:a, $1:b, $1:c FROM @~) "
                     "FILE_FORMAT = (TYPE = JSON) FILES = ('table/INSTANCE_MS_1.jl')",
@@ -249,9 +249,9 @@ def test_dynamic_fields():
         (
             False,
             [
-                ("CREATE TABLE IF NOT EXISTS table (a NUMBER, c ARRAY)",),
+                ("CREATE TABLE IF NOT EXISTS table (c ARRAY)",),
                 (
-                    "COPY INTO table (a, c) FROM (SELECT $1:a, $1:c FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    "COPY INTO table (c) FROM (SELECT $1:c FROM @~) FILE_FORMAT = (TYPE = JSON) "
                     "FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
             ],
