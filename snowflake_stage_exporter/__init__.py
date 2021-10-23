@@ -109,14 +109,14 @@ class SnowflakeStageExporter(AbstractContextManager):
         if self._should_flush_buffer_for(table_path):
             self.flush_table_buffer(table_path)
 
-        self.record_field_types(table_path, item_dict)
+        self._record_field_types(table_path, item_dict)
 
         return table_path
 
     def _should_flush_buffer_for(self, table_path: str) -> bool:
         return self._table_buffers[table_path].tell() >= self._max_file_size
 
-    def record_field_types(self, table_path: str, item_dict: Dict) -> None:
+    def _record_field_types(self, table_path: str, item_dict: Dict) -> None:
         recorded = self._recorded_coltypes.setdefault(table_path, {})
         for k, v in item_dict.items():
             if v is not None:
