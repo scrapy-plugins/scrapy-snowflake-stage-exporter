@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 ExporterEvent = Literal["finish", "flush", "never"]
 
 
+class SnowflakeStageExporterError(Exception):
+    pass
+
+
 class SnowflakeStageExporter(AbstractContextManager):
 
     typemap = {
@@ -28,6 +32,7 @@ class SnowflakeStageExporter(AbstractContextManager):
         bool: "BOOLEAN",
         str: "VARCHAR",
     }
+    multitype = "VARIANT"
 
     def __init__(
         self,
@@ -66,6 +71,12 @@ class SnowflakeStageExporter(AbstractContextManager):
                     f"unexpected value ({val!r}) for {attr!r}, expected one of {exporter_events!r}"
                 )
 
+        if any(not v for v in self._predefined_column_types.values()):
+            raise ValueError("values of 'predefined_column_types' can't be empty")
+
+        if not stage.startswith("@") or "/" in stage:
+            raise ValueError('"stage" must begin with @ and have no path elements')
+
         self.conn = self.create_connection(
             user=user,
             password=password,
@@ -74,7 +85,7 @@ class SnowflakeStageExporter(AbstractContextManager):
         )
         self._table_buffers: Dict = {}  # {table_path: tmp_buffer_file}
         self._exported_fpaths: Dict = {}  # {table_path: [exported_fpath_in_stage, ...]}
-        self._recorded_field_types: Dict = {}  # {table_path: {field: set({cls, ...})}}
+        self._recorded_coltypes: Dict = {}  # {table_path: {field: set({cls, ...})}}
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
@@ -86,32 +97,32 @@ class SnowflakeStageExporter(AbstractContextManager):
         self.conn.close()
 
     def export_item(self, item: Any, **extra_params) -> str:
-        item_dict = ItemAdapter(item).asdict()
+        item_dict: Dict = ItemAdapter(item).asdict()
 
         table_path = self.table_for_item(item_dict, **extra_params)
         if table_path not in self._table_buffers:
             logger.info("Creating buffer for %r", table_path)
             self._table_buffers[table_path] = NamedTemporaryFile("wb")
 
-        self.record_field_types(table_path, item_dict)
-
         line = json.dumps(item_dict) + "\n"
         self._table_buffers[table_path].write(line.encode("utf8"))
         if self._should_flush_buffer_for(table_path):
             self.flush_table_buffer(table_path)
+
+        self.record_field_types(table_path, item_dict)
 
         return table_path
 
     def _should_flush_buffer_for(self, table_path: str) -> bool:
         return self._table_buffers[table_path].tell() >= self._max_file_size
 
-    def record_field_types(self, table_path: str, item_dict) -> None:
-        recorded = self._recorded_field_types.setdefault(table_path, {})
+    def record_field_types(self, table_path: str, item_dict: Dict) -> None:
+        recorded = self._recorded_coltypes.setdefault(table_path, {})
         for k, v in item_dict.items():
             if v is not None:
-                recorded.setdefault(k, set()).add(type(v))
+                recorded.setdefault(k, set()).add(self.typemap[type(v)])
 
-    def table_for_item(self, item_dict: str, **extra_params) -> str:
+    def table_for_item(self, item_dict: Dict, **extra_params) -> str:
         return self._table_path.format(**extra_params, item=item_dict)
 
     def fpath_for_table(self, table_path: str, batch_n: int) -> str:
@@ -164,33 +175,32 @@ class SnowflakeStageExporter(AbstractContextManager):
         if columns and self._ignore_unexpected_fields:
             return columns
 
-        for colname, types in self._recorded_field_types.get(table_path, {}).items():
+        recorded_coltypes = self._recorded_coltypes.get(table_path, {})
+        for colname, coltypes in recorded_coltypes.items():
             if colname in columns:
                 continue
-            if len(types) == 1:
-                type_ = next(iter(types))
-                coltype = self.typemap.get(type_)
-                if not coltype:
-                    logger.error(
-                        "Table %r, field %r: skipping. Did not find an appropriate mapping from python type (%r)"
-                        " to snowflake column type. Only basic JSON serializable types are supported.",
-                        table_path,
-                        colname,
-                        type_,
-                    )
-                    continue
+            if len(coltypes) == 1:
+                coltype = next(iter(coltypes))
             else:
                 if self._allow_varying_value_types:
-                    coltype = "VARIANT"
+                    coltype = self.multitype
                 else:
                     logger.error(
-                        "Table %r, field %r, skipping. Multiple types encountered on values: %r.",
+                        "Table %r, field %r: skipping. Multiple coltypes encountered on values: %r.",
                         table_path,
                         colname,
-                        types,
+                        coltypes,
                     )
                     continue
             columns[colname] = coltype
+
+        if not columns:
+            raise SnowflakeStageExporterError(
+                "no valid columns are found for table %r, recorded columns: %r",
+                table_path,
+                recorded_coltypes,
+            )
+
         return columns
 
     def create_table(self, table_path: str) -> None:
@@ -228,9 +238,11 @@ class SnowflakeStageExporter(AbstractContextManager):
         for table_path in self._exported_fpaths:
             self.populate_table(table_path)
 
-    def clear_stage(self, fpaths: Iterable[str] = None):
+    def clear_stage(self, fpaths: Iterable[str] = None) -> None:
         if fpaths is None:
-            fpaths = [fpath for fpaths in self._exported_fpaths for fpath in fpaths]
+            fpaths = [
+                fpath for fpaths in self._exported_fpaths.values() for fpath in fpaths
+            ]
             count_msg = f"{len(fpaths)} (all)"
         else:
             fpaths = list(fpaths or [])
