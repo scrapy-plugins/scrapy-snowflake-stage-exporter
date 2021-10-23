@@ -71,8 +71,8 @@ All of the configurations are done via arguments to main exporter class `Snowfla
     - `True` by default but only takes effect when table does have predefined column types.
     - The data is still exported in full to the staged files.
 - `allow_varying_value_types` - if `False` during table creation / population skip columns that had multiple value types.
-    - `True` by default. `VARIANT` type is assigned to such column.
-    - Error is logged when `False` and such column is encountered.
+    - `False` by default. Error is logged during table create/populate if such columns were encountered.
+    - If `True` then `VARIANT` type is assigned to such column.
     - Takes effect only when there is a need for exporter to figure out the column type.
     - The data is still exported in full to the staged files.
 - `create_tables_on` - one of "finish/flush/never". "finish" by default. "flush" is for each time a file is staged.
@@ -92,8 +92,3 @@ Once a Scrapy job ends, all remaining buffers are flushed. If the job outcome is
 > pip install black mypy pylint isort pytest # instal dev dependencies
 > python ./run_checks.py # run lints and tests
 ```
-
-## TODO
-
-- More unit tests.
-- Test on windows.

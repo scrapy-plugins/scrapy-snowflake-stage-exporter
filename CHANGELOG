@@ -1,4 +1,10 @@
+# [0.0.3]
+- Fix broken `SnowflakeStageExporter.clear_stage(...)`.
+- Encounters of `int` and `float` on the same field will map to "NUMBER" instead of "VARIANT".
+- `SnowflakeStageExporter.record_field_types` -> `SnowflakeStageExporter._record_field_types`.
+- +`SnowflakeStageExporter.multitype = "VARIANT"`.
+
 # [0.0.2]
-- Prefixed most `SnowflakeStageExporter` instance variables with underscore to indicate them being intended as "protected".
-- `SnowflakeStageExporter.default_typemap` -> `SnowflakeStageExporter.typemap`.
 - `SnowflakeStageExporter.export_item(...)` now returns expanded `table_path` used for passed item.
+- `SnowflakeStageExporter.default_typemap` -> `SnowflakeStageExporter.typemap`.
+- Prefixed most `SnowflakeStageExporter` instance variables with underscore to indicate them being intended as "protected".
