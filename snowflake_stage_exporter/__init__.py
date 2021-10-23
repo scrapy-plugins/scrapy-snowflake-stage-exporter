@@ -196,9 +196,7 @@ class SnowflakeStageExporter(AbstractContextManager):
 
         if not columns:
             raise SnowflakeStageExporterError(
-                "no valid columns are found for table %r, recorded columns: %r",
-                table_path,
-                recorded_coltypes,
+                f"no valid columns are found for table {table_path!r}, recorded columns: {recorded_coltypes!r}",
             )
 
         return columns

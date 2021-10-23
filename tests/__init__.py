@@ -24,7 +24,7 @@ def make_test_exporter(table_path, patch_put=True, **kwargs):
 def read_table_buffer(exporter, table_path):
     buffer = exporter._table_buffers[table_path]
     buffer.flush()
-    with open(buffer.name) as f:
+    with open(buffer.name, encoding="utf8") as f:
         return f.read()
 
 
@@ -33,7 +33,7 @@ def mock_calls_get_sql(calls):
     for call in calls:
         try:
             value = (re.sub(r"\n+\s+", " ", call.args[0]).strip(), *call.args[1:])
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             value = call
         cleaned.append(value)
     return cleaned

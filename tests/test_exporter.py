@@ -3,7 +3,7 @@ import fnmatch
 from unittest.mock import call
 
 import pytest
-import snowflake
+import snowflake  # type: ignore
 
 from snowflake_stage_exporter import SnowflakeStageExporterError
 from tests import make_test_exporter, mock_calls_get_sql, read_table_buffer
