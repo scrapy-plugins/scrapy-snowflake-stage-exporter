@@ -28,7 +28,7 @@ class SnowflakeStageExporter(AbstractContextManager):
         dict: "OBJECT",
         list: "ARRAY",
         int: "NUMBER",
-        float: "NUMBER",
+        float: "FLOAT",
         bool: "BOOLEAN",
         str: "VARCHAR",
     }
