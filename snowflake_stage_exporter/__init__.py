@@ -10,7 +10,7 @@ from typing import Any, Collection, Dict, Iterable, Literal
 import snowflake.connector  # type: ignore
 from itemadapter import ItemAdapter  # type: ignore
 
-from .utils import chunk
+from .utils import chunk, normalize_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,9 @@ class SnowflakeStageExporter(AbstractContextManager):
                 recorded.setdefault(k, set()).add(self.typemap[type(v)])
 
     def table_for_item(self, item_dict: Dict, **extra_params) -> str:
-        return self._table_path.format(**extra_params, item=item_dict)
+        table_path = self._table_path.format(**extra_params, item=item_dict)
+        table_path = ".".join(map(normalize_identifier, table_path.split(".", 2)))
+        return table_path
 
     def fpath_for_table(self, table_path: str, batch_n: int) -> str:
         return self._stage_path.format(
@@ -205,8 +207,8 @@ class SnowflakeStageExporter(AbstractContextManager):
         logger.info("Creating table %r", table_path)
         cols = ", ".join(
             [
-                f"{col} {type_}"
-                for col, type_ in self.get_column_types(table_path).items()
+                f"{normalize_identifier(col)} {coltype}"
+                for col, coltype in self.get_column_types(table_path).items()
             ]
         )
         self.conn.cursor().execute(f"CREATE TABLE IF NOT EXISTS {table_path} ({cols})")
@@ -215,8 +217,9 @@ class SnowflakeStageExporter(AbstractContextManager):
         logger.info("Populating table %r", table_path)
         all_fpaths = self._exported_fpaths[table_path]
         coltypes = self.get_column_types(table_path)
-        cols = ", ".join(coltypes)
-        json_select = ", ".join(f"$1:{field}" for field in coltypes)
+        cols = ", ".join(map(normalize_identifier, coltypes))
+        safe_fields = [field.replace('"', '""') for field in coltypes]
+        json_select = ", ".join(f'$1:"{field}"' for field in safe_fields)
         for fpaths in chunk(all_fpaths, 1000):
             fpaths = ", ".join(f"'{fpath}'" for fpath in fpaths)
             self.conn.cursor().execute(

@@ -1,3 +1,5 @@
+import re
+from hashlib import sha256
 from typing import Iterable
 
 
@@ -10,3 +12,14 @@ def chunk(iterable: Iterable, n: int):
             current_chunk = []
     if current_chunk:
         yield tuple(current_chunk)
+
+
+def normalize_identifier(value: str) -> str:
+    orig_value = value
+    value = re.sub(r"(?i)[^a-z\d_$]+", " ", value).strip()
+    value = re.sub(r" +", "_", value)
+    if not re.match(r"(?i)[a-z]", value):
+        value = "_" + value
+    if value == "_":
+        return "_empty_" + sha256(orig_value.encode("utf8")).hexdigest()[:6]
+    return value
