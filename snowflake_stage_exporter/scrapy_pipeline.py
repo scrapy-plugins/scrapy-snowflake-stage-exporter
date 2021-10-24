@@ -1,7 +1,10 @@
 import inspect
+import logging
 import os
 
 from . import SnowflakeStageExporter
+
+logger = logging.getLogger(__name__)
 
 
 class SnowflakePipeline:
@@ -47,9 +50,12 @@ class SnowflakePipeline:
         return instance
 
     def process_item(self, item, spider):
-        self.stage_exporter.export_item(
-            item, spider=spider, item_type_name=type(item).__name__
-        )
+        try:
+            self.stage_exporter.export_item(
+                item, spider=spider, item_type_name=type(item).__name__
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Failed to export item: %r", str(item)[:1000])
         return item
 
     def on_spider_close(self, spider, reason):

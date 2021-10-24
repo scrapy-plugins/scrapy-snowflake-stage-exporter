@@ -5,7 +5,7 @@ import time
 import typing
 from contextlib import AbstractContextManager
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Any, Collection, Dict, Iterable, Literal
+from typing import Any, Collection, Dict, Iterable, Literal, Set
 
 import snowflake.connector  # type: ignore
 from itemadapter import ItemAdapter  # type: ignore
@@ -86,6 +86,7 @@ class SnowflakeStageExporter(AbstractContextManager):
         self._table_buffers: Dict = {}  # {table_path: tmp_buffer_file}
         self._exported_fpaths: Dict = {}  # {table_path: [exported_fpath_in_stage, ...]}
         self._recorded_coltypes: Dict = {}  # {table_path: {field: set({cls, ...})}}
+        self._created_tables_for: Set[str] = set()  # {table_path, ...}
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
@@ -117,6 +118,8 @@ class SnowflakeStageExporter(AbstractContextManager):
         return self._table_buffers[table_path].tell() >= self._max_file_size
 
     def _record_field_types(self, table_path: str, item_dict: Dict) -> None:
+        if table_path in self._created_tables_for:
+            return
         recorded = self._recorded_coltypes.setdefault(table_path, {})
         for k, v in item_dict.items():
             if v is not None:
@@ -204,6 +207,8 @@ class SnowflakeStageExporter(AbstractContextManager):
         return columns
 
     def create_table(self, table_path: str) -> None:
+        if table_path in self._created_tables_for:
+            return
         logger.info("Creating table %r", table_path)
         cols = ", ".join(
             [
@@ -212,6 +217,7 @@ class SnowflakeStageExporter(AbstractContextManager):
             ]
         )
         self.conn.cursor().execute(f"CREATE TABLE IF NOT EXISTS {table_path} ({cols})")
+        self._created_tables_for.add(table_path)
 
     def populate_table(self, table_path: str) -> None:
         logger.info("Populating table %r", table_path)
