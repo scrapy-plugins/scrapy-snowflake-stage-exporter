@@ -45,7 +45,7 @@ An illustrative example can be a long running Scrapy / ScrapyCloud job that cons
 
 Secondary consideration was for allowing the user to be able to work with purely just the stages like one would work with S3 or similar blob file storage. This covers cases when user would needs their own sophisticated table management approach and simply wants a convenient place to store raw data.
 
-**IMPORTANT NOTE**: it won't make much sense to use this library if you're already working with S3 or similar storages (including just local machine) where your data is one of the [Snowflake supported file formats](https://docs.snowflake.com/en/user-guide/data-load-prepare.html#supported-file-formats). Snowflake [has built-in support of ingesting several 3rd party blob storages](https://docs.snowflake.com/en/user-guide/data-load-bulk.html) and for local files you can upload them via `PUT` statements.
+**NOTE**: it won't make much sense to use this library if you're already working with S3 or similar storages (including just local machine) where your data is one of the [Snowflake supported file formats](https://docs.snowflake.com/en/user-guide/data-load-prepare.html#supported-file-formats). Snowflake [has built-in support of ingesting several 3rd party blob storages](https://docs.snowflake.com/en/user-guide/data-load-bulk.html) and for local files you can upload them via `PUT` statements.
 
 ## Configuration
 
