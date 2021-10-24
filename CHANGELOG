@@ -1,3 +1,7 @@
+# [0.0.4]
+- Only run CREATE TABLE statements once, don't track field types afterwards either.
+- Produce item from Scrapy pipeline even if exporter raises an exception.
+
 # [0.0.3]
 - Start normalizing column/table identifiers in accordance with https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html (unquoted object identifiers).
 - Quote fields in SELECT from staged file.
