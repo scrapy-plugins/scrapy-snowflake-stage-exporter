@@ -32,6 +32,8 @@ def mock_calls_get_sql(calls):
     cleaned = []
     for call in calls:
         try:
+            if ".execute" not in str(call):
+                raise Exception
             value = (re.sub(r"\n+\s+", " ", call.args[0]).strip(), *call.args[1:])
         except Exception:  # pylint: disable=broad-except
             value = call
