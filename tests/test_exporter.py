@@ -30,11 +30,11 @@ def test_basic_flow():
             ("CREATE TABLE IF NOT EXISTS foo_1 (myfield NUMBER)",),
             ("CREATE TABLE IF NOT EXISTS bar_2 (myfield NUMBER, x OBJECT)",),
             (
-                "COPY INTO foo_1 (myfield) FROM (SELECT $1:myfield FROM @~) FILE_FORMAT = "
+                'COPY INTO foo_1 (myfield) FROM (SELECT $1:"myfield" FROM @~) FILE_FORMAT = '
                 "(TYPE = JSON) FILES = ('foo_1/INSTANCE_MS_1.jl')",
             ),
             (
-                "COPY INTO bar_2 (myfield, x) FROM (SELECT $1:myfield, $1:x FROM @~) "
+                'COPY INTO bar_2 (myfield, x) FROM (SELECT $1:"myfield", $1:"x" FROM @~) '
                 "FILE_FORMAT = (TYPE = JSON) FILES = ('bar_2/INSTANCE_MS_1.jl')",
             ),
         ]
@@ -69,11 +69,11 @@ def test_clear_stage():
             ("CREATE TABLE IF NOT EXISTS a (myfield NUMBER)",),
             ("CREATE TABLE IF NOT EXISTS b (myfield NUMBER)",),
             (
-                "COPY INTO a (myfield) FROM (SELECT $1:myfield FROM @~) FILE_FORMAT = (TYPE "
+                'COPY INTO a (myfield) FROM (SELECT $1:"myfield" FROM @~) FILE_FORMAT = (TYPE '
                 "= JSON) FILES = ('a/INSTANCE_MS_1.jl')",
             ),
             (
-                "COPY INTO b (myfield) FROM (SELECT $1:myfield FROM @~) FILE_FORMAT = (TYPE "
+                'COPY INTO b (myfield) FROM (SELECT $1:"myfield" FROM @~) FILE_FORMAT = (TYPE '
                 "= JSON) FILES = ('b/INSTANCE_MS_1.jl')",
             ),
             ("REMOVE %s", [("@~/a/INSTANCE_MS_1.jl",), ("@~/b/INSTANCE_MS_1.jl",)]),
@@ -105,7 +105,7 @@ def test_chunking():
         assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
             ("CREATE TABLE IF NOT EXISTS table (a VARCHAR)",),
             (
-                "COPY INTO table (a) FROM (SELECT $1:a FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                 "FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl', "
                 "'table/INSTANCE_MS_3.jl', 'table/INSTANCE_MS_4.jl', "
                 "'table/INSTANCE_MS_5.jl')",
@@ -151,11 +151,11 @@ def test_predefined_fields():
             ("CREATE TABLE IF NOT EXISTS aa (a VARCHAR, b NUMBER, c VARIANT)",),
             ("CREATE TABLE IF NOT EXISTS bb (b NUMBER, d NUMBER, e OBJECT)",),
             (
-                "COPY INTO aa (a, b, c) FROM (SELECT $1:a, $1:b, $1:c FROM @~) FILE_FORMAT = "
+                'COPY INTO aa (a, b, c) FROM (SELECT $1:"a", $1:"b", $1:"c" FROM @~) FILE_FORMAT = '
                 "(TYPE = JSON) FILES = ('aa/INSTANCE_MS_1.jl')",
             ),
             (
-                "COPY INTO bb (b, d, e) FROM (SELECT $1:b, $1:d, $1:e FROM @~) FILE_FORMAT = "
+                'COPY INTO bb (b, d, e) FROM (SELECT $1:"b", $1:"d", $1:"e" FROM @~) FILE_FORMAT = '
                 "(TYPE = JSON) FILES = ('bb/INSTANCE_MS_1.jl')",
             ),
         ]
@@ -169,7 +169,7 @@ def test_predefined_fields():
             [
                 ("CREATE TABLE IF NOT EXISTS table (a VARCHAR, b NUMBER)",),
                 (
-                    "COPY INTO table (a, b) FROM (SELECT $1:a, $1:b FROM @~) FILE_FORMAT = (TYPE "
+                    'COPY INTO table (a, b) FROM (SELECT $1:"a", $1:"b" FROM @~) FILE_FORMAT = (TYPE '
                     "= JSON) FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
             ],
@@ -179,7 +179,7 @@ def test_predefined_fields():
             [
                 ("CREATE TABLE IF NOT EXISTS table (a VARCHAR)",),
                 (
-                    "COPY INTO table (a) FROM (SELECT $1:a FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
             ],
@@ -226,8 +226,8 @@ def test_dynamic_fields():
             "f ARRAY, g OBJECT, h VARIANT)",
         ),
         (
-            "COPY INTO table (a, b, c, e, f, g, h) FROM (SELECT $1:a, $1:b, $1:c, $1:e, "
-            "$1:f, $1:g, $1:h FROM @~) FILE_FORMAT = (TYPE = JSON) FILES = "
+            'COPY INTO table (a, b, c, e, f, g, h) FROM (SELECT $1:"a", $1:"b", $1:"c", $1:"e", '
+            '$1:"f", $1:"g", $1:"h" FROM @~) FILE_FORMAT = (TYPE = JSON) FILES = '
             "('table/INSTANCE_MS_1.jl')",
         ),
     ]
@@ -241,7 +241,7 @@ def test_dynamic_fields():
             [
                 ("CREATE TABLE IF NOT EXISTS table (a VARIANT, b VARIANT, c ARRAY)",),
                 (
-                    "COPY INTO table (a, b, c) FROM (SELECT $1:a, $1:b, $1:c FROM @~) "
+                    'COPY INTO table (a, b, c) FROM (SELECT $1:"a", $1:"b", $1:"c" FROM @~) '
                     "FILE_FORMAT = (TYPE = JSON) FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
             ],
@@ -251,7 +251,7 @@ def test_dynamic_fields():
             [
                 ("CREATE TABLE IF NOT EXISTS table (c ARRAY)",),
                 (
-                    "COPY INTO table (c) FROM (SELECT $1:c FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    'COPY INTO table (c) FROM (SELECT $1:"c" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
             ],
@@ -283,7 +283,7 @@ def test_stage_path():
         exporter.export_item({"a": 1})
         exporter.finish_export()
         assert mock_calls_get_sql(exporter.conn.cursor().mock_calls)[-1] == (
-            "COPY INTO table (a) FROM (SELECT $1:a FROM @x) FILE_FORMAT = (TYPE = JSON) "
+            'COPY INTO table (a) FROM (SELECT $1:"a" FROM @x) FILE_FORMAT = (TYPE = JSON) '
             "FILES = ('AA/BB/cc/table/INSTANCE_MS/1')",
         )
 
@@ -296,13 +296,13 @@ def test_stage_path():
             [
                 ("CREATE TABLE IF NOT EXISTS table (a NUMBER)",),
                 (
-                    "COPY INTO table (a) FROM (SELECT $1:a FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
                 ("REMOVE %s", [("@~/table/INSTANCE_MS_1.jl",)]),
                 ("CREATE TABLE IF NOT EXISTS table (a NUMBER)",),
                 (
-                    "COPY INTO table (a) FROM (SELECT $1:a FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl')",
                 ),
                 ("REMOVE %s", [("@~/table/INSTANCE_MS_2.jl",)]),
@@ -313,7 +313,7 @@ def test_stage_path():
             [
                 ("CREATE TABLE IF NOT EXISTS table (a NUMBER)",),
                 (
-                    "COPY INTO table (a) FROM (SELECT $1:a FROM @~) FILE_FORMAT = (TYPE = JSON) "
+                    'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl')",
                 ),
                 (

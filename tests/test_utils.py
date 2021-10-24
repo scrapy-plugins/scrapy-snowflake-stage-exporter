@@ -1,6 +1,6 @@
 import pytest
 
-from snowflake_stage_exporter.utils import chunk
+from snowflake_stage_exporter.utils import chunk, normalize_identifier
 
 
 @pytest.mark.parametrize(
@@ -15,3 +15,21 @@ from snowflake_stage_exporter.utils import chunk
 )
 def test_chunk(iterable, n, result):
     assert list(chunk(iterable, n)) == result
+
+
+@pytest.mark.parametrize(
+    "value, result",
+    [
+        ("A.B. C ", "A_B_C"),
+        ("", "_empty_e3b0c4"),
+        ("91 $", "_91_$"),
+        ("$", "_$"),
+        ("   ", "_empty_0aad7d"),
+        ("abc", "abc"),
+        ("ABc", "ABc"),
+        ("  AB;c =+ ", "AB_c"),
+        ("  AB   c", "AB_c"),
+    ],
+)
+def test_normalize_identifier(value, result):
+    assert normalize_identifier(value) == result

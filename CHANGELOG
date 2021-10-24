@@ -1,7 +1,10 @@
 # [0.0.3]
+- Start normalizing column/table identifiers in accordance with https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html (unquoted object identifiers).
+- Quote fields in SELECT from staged file.
 - Fix broken `SnowflakeStageExporter.clear_stage(...)`.
-- Encounters of `int` and `float` on the same field will map to "NUMBER" instead of "VARIANT".
+- Fix `float` being mapped to "NUMBER" - map to "FLOAT" instead.
 - `SnowflakeStageExporter.record_field_types` -> `SnowflakeStageExporter._record_field_types`.
+- +`snowflake_stage_exporter.utils.normalize_identifier`.
 - +`SnowflakeStageExporter.multitype = "VARIANT"`.
 
 # [0.0.2]
