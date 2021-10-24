@@ -300,7 +300,6 @@ def test_stage_path():
                     "FILES = ('table/INSTANCE_MS_1.jl')",
                 ),
                 ("REMOVE %s", [("@~/table/INSTANCE_MS_1.jl",)]),
-                ("CREATE TABLE IF NOT EXISTS table (a NUMBER)",),
                 (
                     'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
                     "FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl')",
@@ -343,6 +342,23 @@ def test_on_flush_or_finish(flush_or_finish, expect_sqls):
             exporter.finish_export()
             # ensure nothing else required connection call
             assert exporter.conn.cursor().mock_calls == calls_pre_finish
+
+
+def test_new_field_after_table_created():
+    with make_test_exporter(
+        "table", create_tables_on="flush", populate_tables_on="finish"
+    ) as exporter:
+        exporter.export_item({"a": 1})
+        exporter.flush_all_table_buffers()
+        exporter.export_item({"b": 1})
+        exporter.finish_export()
+        assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
+            ("CREATE TABLE IF NOT EXISTS table (a NUMBER)",),
+            (
+                'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = '
+                "JSON) FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl')",
+            ),
+        ]
 
 
 def test_connection_kwargs():

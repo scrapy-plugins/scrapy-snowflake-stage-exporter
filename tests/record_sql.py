@@ -5,10 +5,10 @@ from tests import make_test_exporter, mock_calls_get_sql
 
 
 def main():
-    with make_test_exporter("your_table_path") as exporter:
+    with make_test_exporter("table") as exporter:
 
         # <your code above>
-        pprint(mock_calls_get_sql(exporter.conn.cursor().execute.mock_calls))
+        pprint(mock_calls_get_sql(exporter.conn.cursor().mock_calls))
 
 
 if __name__ == "__main__":
