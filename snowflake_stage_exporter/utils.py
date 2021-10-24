@@ -1,9 +1,9 @@
 import re
 from hashlib import sha256
-from typing import Iterable
+from typing import Iterable, Tuple
 
 
-def chunk(iterable: Iterable, n: int) -> Iterable[tuple]:
+def chunk(iterable: Iterable, n: int) -> Iterable[Tuple]:
     current_chunk = []
     for el in iterable:
         current_chunk.append(el)
