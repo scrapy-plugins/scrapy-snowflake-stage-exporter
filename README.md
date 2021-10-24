@@ -80,6 +80,10 @@ All of the configurations are done via arguments to main exporter class `Snowfla
 - `populate_tables_on` - same as above.
 - `clear_stage_on` - same as above but "never" is default. Each file is removed from stage individually when enabled.
 
+**NOTE**: all database column/table identifiers are normalized in accordance with [Snowflake unquoted object identifiers restrictions](https://docs.snowflake.com/en/sql-reference/identifiers-syntax.html). See example normalization in `tests.test_utils.test_normalize_identifier`.
+- Raw JSON is stored as is without any modifications.
+- Be aware that different JSON fields that are normalized into same column name will lead to a column conflict.
+
 ## Configuration (Scrapy)
 
 All of the exporter instance parameters are exposed as Scrapy settings like `SNOWFLAKE_<UPPERCASE_PARAMETER_NAME>` (e.g. `SNOWFLAKE_MAX_FILE_SIZE`).
