@@ -87,6 +87,7 @@ class SnowflakeStageExporter(AbstractContextManager):
         self._exported_fpaths: Dict = {}  # {table_path: [exported_fpath_in_stage, ...]}
         self._recorded_coltypes: Dict = {}  # {table_path: {field: set({cls, ...})}}
         self._created_tables_for: Set[str] = set()  # {table_path, ...}
+        self._copied_fpaths: Set[str] = set()  # {copied_fpath_in_stage, ...}
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
@@ -221,12 +222,16 @@ class SnowflakeStageExporter(AbstractContextManager):
 
     def populate_table(self, table_path: str) -> None:
         logger.info("Populating table %r", table_path)
-        all_fpaths = self._exported_fpaths[table_path]
+        new_fpaths = [
+            fp
+            for fp in self._exported_fpaths[table_path]
+            if fp not in self._copied_fpaths
+        ]
         coltypes = self.get_column_types(table_path)
         cols = ", ".join(map(normalize_identifier, coltypes))
         safe_fields = [field.replace('"', '""') for field in coltypes]
         json_select = ", ".join(f'$1:"{field}"' for field in safe_fields)
-        for fpaths in chunk(all_fpaths, 1000):
+        for fpaths in chunk(new_fpaths, 1000):
             fpaths_expr = ", ".join(f"'{fpath}'" for fpath in fpaths)
             self.conn.cursor().execute(
                 f"""
@@ -236,6 +241,7 @@ class SnowflakeStageExporter(AbstractContextManager):
                     FILES = ({fpaths_expr})
                 """
             )
+            self._copied_fpaths.update(fpaths)
 
     def create_all_tables(self) -> None:
         for table_path in self._exported_fpaths:

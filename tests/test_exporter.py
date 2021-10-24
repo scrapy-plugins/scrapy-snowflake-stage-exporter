@@ -302,7 +302,7 @@ def test_stage_path():
                 ("REMOVE %s", [("@~/table/INSTANCE_MS_1.jl",)]),
                 (
                     'COPY INTO table (a) FROM (SELECT $1:"a" FROM @~) FILE_FORMAT = (TYPE = JSON) '
-                    "FILES = ('table/INSTANCE_MS_1.jl', 'table/INSTANCE_MS_2.jl')",
+                    "FILES = ('table/INSTANCE_MS_2.jl')",
                 ),
                 ("REMOVE %s", [("@~/table/INSTANCE_MS_2.jl",)]),
             ],
