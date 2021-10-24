@@ -365,6 +365,10 @@ def test_messy_identifiers():
         exporter.export_item({"salary  ": "2"})
         exporter.export_item({"name": "Jack", 'sZZZal\'a""ry': "zzzzz"})
         exporter.export_item({'na ;M.""e': [], "9salary": 1.1})
+        assert read_table_buffer(exporter, "DEMO__DB.PUBLIC.Z_Z") == (
+            '{".": 100}\n{"..": "100"}\n{"salary": 100}\n{"salary  ": "2"}\n'
+            '{"name": "Jack", "sZZZal\'a\\"\\"ry": "zzzzz"}\n{"na ;M.\\"\\"e": [], "9salary": 1.1}\n'
+        )
         exporter.finish_export()
     assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
         (
