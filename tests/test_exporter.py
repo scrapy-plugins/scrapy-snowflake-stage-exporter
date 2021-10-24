@@ -351,6 +351,32 @@ def test_connection_kwargs():
             user="user", password="pass", account="account", role="PUBLIC"
         )
     with pytest.raises(TypeError):
-        # got multiple values for keyword argument 'user'
+        # "got multiple values for keyword argument 'user'"
         with make_test_exporter("table", connection_kwargs={"user": "a"}):
             pass
+
+
+def test_messy_identifiers():
+    with make_test_exporter("DEMO _DB.  PUBLIC.Z .Щ==Z") as exporter:
+        exporter.export_item({".": 100})
+        exporter.export_item({"..": "100"})
+        exporter.export_item({"salary": 100})
+        # line below causes duplicate columns error on real connection
+        exporter.export_item({"salary  ": "2"})
+        exporter.export_item({"name": "Jack", 'sZZZal\'a""ry': "zzzzz"})
+        exporter.export_item({'na ;M.""e': [], "9salary": 1.1})
+        exporter.finish_export()
+    assert mock_calls_get_sql(exporter.conn.cursor().mock_calls) == [
+        (
+            "CREATE TABLE IF NOT EXISTS DEMO__DB.PUBLIC.Z_Z (_empty_cdb4ee NUMBER, "
+            "_empty_5ec1f7 VARCHAR, salary NUMBER, salary VARCHAR, name VARCHAR, "
+            "sZZZal_a_ry VARCHAR, na_M_e ARRAY, _9salary FLOAT)",
+        ),
+        (
+            "COPY INTO DEMO__DB.PUBLIC.Z_Z (_empty_cdb4ee, _empty_5ec1f7, salary, "
+            'salary, name, sZZZal_a_ry, na_M_e, _9salary) FROM (SELECT $1:".", $1:"..", '
+            '$1:"salary", $1:"salary  ", $1:"name", $1:"sZZZal\'a""""ry", $1:"na '
+            ';M.""""e", $1:"9salary" FROM @~) FILE_FORMAT = (TYPE = JSON) FILES = '
+            "('DEMO__DB.PUBLIC.Z_Z/INSTANCE_MS_1.jl')",
+        ),
+    ]
