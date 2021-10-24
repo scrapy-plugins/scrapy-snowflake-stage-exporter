@@ -1,5 +1,6 @@
 # [0.0.4]
 - Only run CREATE TABLE statements once, don't track field types afterwards either.
+- Only copy new staged files into tables (effectively no difference given Snowflake tables skip already loaded files).
 - Produce item from Scrapy pipeline even if exporter raises an exception.
 
 # [0.0.3]
