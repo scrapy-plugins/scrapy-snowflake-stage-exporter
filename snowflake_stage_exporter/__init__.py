@@ -221,13 +221,13 @@ class SnowflakeStageExporter(AbstractContextManager):
         safe_fields = [field.replace('"', '""') for field in coltypes]
         json_select = ", ".join(f'$1:"{field}"' for field in safe_fields)
         for fpaths in chunk(all_fpaths, 1000):
-            fpaths = ", ".join(f"'{fpath}'" for fpath in fpaths)
+            fpaths_expr = ", ".join(f"'{fpath}'" for fpath in fpaths)
             self.conn.cursor().execute(
                 f"""
                 COPY INTO {table_path} ({cols})
                     FROM (SELECT {json_select} FROM {self._stage})
                     FILE_FORMAT = (TYPE = JSON)
-                    FILES = ({fpaths})
+                    FILES = ({fpaths_expr})
                 """
             )
 

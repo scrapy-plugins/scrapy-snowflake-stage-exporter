@@ -3,7 +3,7 @@ from hashlib import sha256
 from typing import Iterable
 
 
-def chunk(iterable: Iterable, n: int):
+def chunk(iterable: Iterable, n: int) -> Iterable[tuple]:
     current_chunk = []
     for el in iterable:
         current_chunk.append(el)
