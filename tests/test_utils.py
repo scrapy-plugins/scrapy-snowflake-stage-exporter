@@ -38,5 +38,5 @@ def test_chunk(iterable, n, result):
 )
 def test_normalize_identifier(value, result):
     ret = normalize_identifier(value)
-    assert normalize_identifier(value) == result
+    assert ret == result
     assert normalize_identifier(ret) == ret  # check idempotency
