@@ -1,5 +1,7 @@
 ## Basic example of use with Scrapy
 
+NOTE: This example uses dataclasses for items, however it will also work just fine with `scrapy.Item`'s or `dict`s.
+
 ```python
 # your Scrapy `settings.py` file
 ...
