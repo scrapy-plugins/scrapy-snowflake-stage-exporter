@@ -4,7 +4,7 @@ Meant for streaming ingestion of JSON serializable objects into Snowflake stages
 
 ## Installation
 ```bash
-> pip install git+https://github.com/hermit-crab/snowflake-stage-exporter.git
+> pip install git+https://github.com/scrapy-plugins/scrapy-snowflake-stage-exporter.git
 ```
 
 ## Basic example
